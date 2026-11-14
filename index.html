@@ -239,6 +239,14 @@
     .view { animation: none; }
     .btn, .opt { transition: none; }
   }
+  .namefield { display: block; margin-top: 20px; font-weight: 700; font-size: 14px; }
+.namefield input {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 14px 16px; border-radius: 14px;
+  border: 1.5px solid var(--line); background: var(--surface);
+  color: var(--fg); font: inherit; font-size: 16px;
+}
+.namefield input.err { border-color: var(--fe); }
 </style>
 
 <main class="wrap">
@@ -250,7 +258,8 @@
 <script>
   // 결과 이미지 경로나 데이터 주소를 여기에 넣으면 이미지 자리가 이미지로 바뀝니다.
   var IMAGES = { intro: "./images/intro.png", frontend: "./images/fe.png", backend: "./images/be.png", fullstack: "./images/fs.png" };
-
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFE1q0-MRBJuVvOTi6uGf84m0h0f9XUqxCWEOrtP12EDNiMyOsbH2c5DaCJhWzMmi2/exec";
+  var userName = "";
   var LABEL = { frontend: "프론트엔드", backend: "백엔드", fullstack: "풀스택" };
   var COLOR = { frontend: "var(--fe)", backend: "var(--be)", fullstack: "var(--fs)" };
 
@@ -385,10 +394,16 @@
         '<li style="--c:var(--fs)"><i class="dot"></i>풀스택</li>' +
       '</ul>' +
       '<p class="meta">10문항 · 약 2분 · 결과는 3가지</p>' +
-      '<button class="btn" id="start" type="button">테스트 시작하기</button>';
-    $("#start").addEventListener("click", function () {
-      idx = 0; answers = []; renderQuestion(); show("quiz");
-    });
+      '<label class="namefield" for="name">이름 (또는 별명)' +
+  '<input id="name" type="text" maxlength="30" autocomplete="off" placeholder="예: 김민준">' +
+'</label>' +'<button class="btn" id="start" type="button">테스트 시작하기</button>';
+ $("#start").addEventListener("click", function () {
+  var input = $("#name");
+  var v = input.value.trim();
+  if (!v) { input.classList.add("err"); input.focus(); return; }
+  userName = v;
+  idx = 0; answers = []; renderQuestion(); show("quiz");
+});
   }
 
   function renderQuestion() {
@@ -449,6 +464,7 @@
     var r = tally();
     var T = TYPES[r.key];
     var c = r.counts;
+    saveResult(r.key, c);
     var bars = "";
     var order = ["frontend", "backend", "fullstack"];
     for (var i = 0; i < order.length; i++) {
@@ -495,7 +511,24 @@
       } catch (e) { fallback(); }
     });
   }
-
+function saveResult(key, counts) {
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf("script.google.com") === -1) return;
+  var payload = {
+    name: userName,
+    type: TYPES[key].name,
+    frontend: counts.frontend,
+    backend: counts.backend,
+    fullstack: counts.fullstack
+  };
+  try {
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) { /* 저장에 실패해도 결과 화면은 그대로 보여 줌 */ }
+}
   renderIntro();
 </script>
 
